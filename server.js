@@ -1,15 +1,14 @@
+// server.js
+
 const express = require('express');
-const redisClient = require('./utils/redis');
-const dbClient = require('./utils/db');
 const routes = require('./routes');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.use(express.json());
-app.use('/api', routes);
+// Load all routes from the file routes/index.js
+app.use(routes);
 
-app.listen(process.env.PORT || 5000, async () => {
-  console.log(`Server is running on port ${process.env.PORT || 5000}`);
-  await redisClient.isAlive();
-  await dbClient.isAlive();
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

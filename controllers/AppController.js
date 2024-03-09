@@ -1,22 +1,43 @@
+// controllers/AppController.js
+
+const { response } = require('express');
 const redisClient = require('../utils/redis');
 const dbClient = require('../utils/db');
 
-exports.getStatus = async (req, res) => {
-  try {
-    await redisClient.isAlive();
-    await dbClient.isAlive();
-    res.status(200).json({ redis: true, db: true });
-  } catch (err) {
-    res.status(500).json({ redis: false, db: false });
-  }
-};
+class AppController {
+  static async getStatus(req, res) {
+    // Check if Redis and MongoDB are alive
+    const redisAlive = await redisClient.isAlive();
+    const dbAlive = await dbClient.isAlive();
 
-exports.getStats = async (req, res) => {
-  try {
-    const users = await dbClient.nbUsers();
-    const files = await dbClient.nbFiles();
-    res.status(200).json({ users, files });
-  } catch (err) {
-    res.status(500).json({ users: 0, files: 0 });
+    const status = {
+      redis: redisAlive,
+      db: dbAlive,
+    };
+
+    // Return status with a status code 200
+    res.status(200).json(status);
   }
-};
+
+  static async getStats(req, res) {
+    try {
+      // Get the number of users and files from the database
+      const usersCount = await dbClient.nbUsers();
+      const filesCount = await dbClient.nbFiles();
+
+      const stats = {
+        users: usersCount,
+        files: filesCount,
+      };
+
+      // Return stats with a status code 200
+      res.status(200).json(stats);
+    } catch (error) {
+      // Handle any errors and return a 500 status code
+      console.error(`Error in getStats: ${error}`);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+}
+
+module.exports = AppController;
