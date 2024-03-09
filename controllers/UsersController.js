@@ -1,6 +1,5 @@
 // controllers/UsersController.js
 
-const { response } = require('express');
 const sha1 = require('sha1');
 const dbClient = require('../utils/db');
 
