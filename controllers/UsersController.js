@@ -1,7 +1,7 @@
 // controllers/UsersController.js
 
-const dbClient = require('../utils/db');
 const crypto = require('crypto');
+const dbClient = require('../utils/db');
 
 class UsersController {
   static async postNew(req, res) {
@@ -52,6 +52,7 @@ class UsersController {
       console.error(`Error in postNew: ${error}`);
       res.status(500).json({ error: 'Internal Server Error' });
     }
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
 
