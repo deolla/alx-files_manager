@@ -1,24 +1,22 @@
-const { redisClient } = require('../utils/redis');
+const redisClient = require('../utils/redis');
 const dbClient = require('../utils/db');
 
 exports.getStatus = async (req, res) => {
   try {
-    const redisAlive = await redisClient.ping();
-    const dbAlive = await dbClient.authenticate();
-
-    res.status(200).json({ redis: redisAlive, db: dbAlive });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    await redisClient.isAlive();
+    await dbClient.isAlive();
+    res.status(200).json({ redis: true, db: true });
+  } catch (err) {
+    res.status(500).json({ redis: false, db: false });
   }
 };
 
 exports.getStats = async (req, res) => {
   try {
-    const usersCount = await dbClient.nbUsers();
-    const filesCount = await dbClient.nbFiles();
-
-    res.status(200).json({ users: usersCount, files: filesCount });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    const users = await dbClient.nbUsers();
+    const files = await dbClient.nbFiles();
+    res.status(200).json({ users, files });
+  } catch (err) {
+    res.status(500).json({ users: 0, files: 0 });
   }
 };
