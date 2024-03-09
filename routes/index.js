@@ -1,14 +1,36 @@
-// routes/index.js
+import express from 'express';
+import AppController from '../controllers/AppController';
+import UsersController from '../controllers/UsersController';
+import AuthController from '../controllers/AuthController';
 
-const express = require('express');
-const AppController = require('../controllers/AppController');
-const UsersController = require('../controllers/UsersController');
+function controllers(app) {
+  const router = express.Router();
+  app.use('/', router);
 
-const router = express.Router();
+  router.get('/status', (req, res) => {
+    AppController.getStatus(req, res);
+  });
 
-// Define endpoints
-router.get('/status', AppController.getStatus);
-router.get('/stats', AppController.getStats);
-router.post('/users', UsersController.postNew);
+  router.get('/stats', (req, res) => {
+    AppController.getStats(req, res);
+  });
 
-module.exports = router;
+  // Controller for Users
+  router.post('/users', (req, res) => {
+    UsersController.postNew(req, res);
+  });
+
+  router.get('/users/me', (req, res) => {
+    UsersController.getMe(req, res);
+  });
+
+  router.get('/connect', (req, res) => {
+    AuthController.getConnect(req, res);
+  });
+
+  router.get('/disconnect', (req, res) => {
+    AuthController.getDisconnect(req, res);
+  });
+}
+
+export default controllers;

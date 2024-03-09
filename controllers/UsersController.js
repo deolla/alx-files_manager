@@ -1,55 +1,63 @@
-// controllers/UsersController.js
+import { ObjectId } from 'mongodb';
+import sha1 from 'sha1';
+import Queue from 'bull';
+import dbClient from '../utils/db';
+import userUtils from '../utils/user';
 
-const sha1 = require('sha1');
-const dbClient = require('../utils/db');
+const userQueue = new Queue('userQueue');
 
 class UsersController {
-  static async postNew(req, res) {
-    // Extract email and password from the request body
-    const { email, password } = req.body;
+  static async postNew(request, response) {
+    const { email, password } = request.body;
 
-    // Check if email and password are provided
-    if (!email) {
-      return res.status(400).json({ error: 'Missing email' });
-    }
+    if (!email) return response.status(400).send({ error: 'Missing email' });
 
-    if (!password) {
-      return res.status(400).json({ error: 'Missing password' });
-    }
+    if (!password) { return response.status(400).send({ error: 'Missing password' }); }
 
+    const emailExists = await dbClient.usersCollection.findOne({ email });
+
+    if (emailExists) { return response.status(400).send({ error: 'Already exist' }); }
+
+    const sha1Password = sha1(password);
+
+    let result;
     try {
-      // Check if the email already exists in the database
-      const db = dbClient.client.db();
-      const existingUser = await db.collection('users').findOne({ email });
-
-      if (existingUser) {
-        return res.status(400).json({ error: 'Already exist' });
-      }
-
-      // Hash the password using SHA1
-      const hashedPassword = sha1(password);
-
-      // Create a new user in the database
-      const newUser = {
+      result = await dbClient.usersCollection.insertOne({
         email,
-        password: hashedPassword,
-      };
-
-      const result = await db.collection('users').insertOne(newUser);
-
-      // Return the new user with only email and id
-      const createdUser = {
-        email: result.ops[0].email,
-        id: result.ops[0]._id,
-      };
-
-      return res.status(201).json(createdUser);
-    } catch (error) {
-      // Handle any errors and return a 500 status code
-      console.error(`Error in postNew: ${error}`);
-      return res.status(500).json({ error: 'Internal Server Error' });
+        password: sha1Password,
+      });
+    } catch (err) {
+      await userQueue.add({});
+      return response.status(500).send({ error: 'Error creating user.' });
     }
+
+    const user = {
+      id: result.insertedId,
+      email,
+    };
+
+    await userQueue.add({
+      userId: result.insertedId.toString(),
+    });
+
+    return response.status(201).send(user);
+  }
+
+  static async getMe(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
+
+    const user = await userUtils.getUser({
+      _id: ObjectId(userId),
+    });
+
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+
+    const processedUser = { id: user._id, ...user };
+    delete processedUser._id;
+    delete processedUser.password;
+
+    return response.status(200).send(processedUser);
   }
 }
 
-module.exports = UsersController;
+export default UsersController;
