@@ -1,92 +1,71 @@
-#!/usr/bin/node
+// controllers/AuthController.js
 
-const { v4 } = require('uuid');
-const dbClient = require('../utils/db');
+const { response } = require('express');
 const redisClient = require('../utils/redis');
-const { getAuthzHeader, getToks, passwrd } = require('../utils/helper');
-const { decodeToken, getCredentials } = require('../utils/helper');
+const dbClient = require('../utils/db');
+const { v4: uuidv4 } = require('uuid');
 
 class AuthController {
   static async getConnect(req, res) {
-    const authzHeader = getAuthzHeader(req);
-    if (!authzHeader) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
+    // Extract email and password from the Authorization header
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-    const token = getToks(authzHeader);
-    if (!token) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
+
+    // Decode and extract email and password from the Basic auth header
+    const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString('utf-8').split(':');
+    const email = credentials[0];
+    const password = credentials[1];
+
+    try {
+      // Find the user associated with the email and password
+      const user = await dbClient.getUser(email, password);
+
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Generate a random token using uuidv4
+      const token = uuidv4();
+
+      // Create a key: auth_<token> and store the user ID in Redis for 24 hours
+      await redisClient.client.set(`auth_${token}`, user._id.toString(), 'EX', 24 * 60 * 60);
+
+      // Return the token with a status code 200
+      return res.status(200).json({ token });
+    } catch (error) {
+      // Handle any errors and return a 500 status code
+      console.error(`Error in getConnect: ${error}`);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
-    const decodedToken = decodeToken(token);
-    if (!decodedToken) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    const { email, password } = getCredentials(decodedToken);
-    const user = await dbClient.getUser(email);
-    if (!user) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    if (user.password !== passwrd(password)) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    const accessToken = v4();
-    await redisClient.set(`auth_${accessToken}`, user._id.toString('utf8'), 60 * 60 * 24);
-    res.json({ token: accessToken });
-    res.end();
   }
 
   static async getDisconnect(req, res) {
+    // Extract the token from the X-Token header
     const token = req.headers['x-token'];
-    if (!token) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    const id = await redisClient.get(`auth_${token}`);
-    if (!id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    const user = await dbClient.getUserById(id);
-    if (!user) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    await redisClient.del(`auth_${token}`);
-    res.status(204).end();
-  }
 
-  static async getMe(req, res) {
-    const token = req.headers['x-token'];
     if (!token) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-    const id = await redisClient.get(`auth_${token}`);
-    if (!id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
+
+    try {
+      // Retrieve the user based on the token
+      const userId = await redisClient.client.get(`auth_${token}`);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Delete the token in Redis and return nothing with a status code 204
+      await redisClient.client.del(`auth_${token}`);
+      return res.status(204).end();
+    } catch (error) {
+      // Handle any errors and return a 500 status code
+      console.error(`Error in getDisconnect: ${error}`);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
-    const user = await dbClient.getUserById(id);
-    if (!user) {
-      res.status(401).json({ error: 'Unauthorized' });
-      res.end();
-      return;
-    }
-    res.json({ id: user._id, email: user.email }).end();
   }
 }
 
