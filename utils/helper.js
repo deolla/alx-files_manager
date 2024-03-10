@@ -3,7 +3,7 @@
 const sha1 = require('sha1');
 
 export const passwrd = (pwd) => sha1(pwd);
-export const auths = (req) => {
+export const getAuthzHeader = (req) => {
   const header = req.headers.authorization;
   if (!header) {
     return null;
@@ -19,16 +19,16 @@ export const getToks = (authzHeader) => {
   return authzHeader.substring(6);
 };
 
-export const popdec = (pop) => {
-  const tokendec = Buffer.from(pop, 'base64').toString('utf8');
-  if (!tokendec.includes(':')) {
+export const decodeToken = (token) => {
+  const decodedToken = Buffer.from(token, 'base64').toString('utf8');
+  if (!decodedToken.includes(':')) {
     return null;
   }
-  return tokendec;
+  return decodedToken;
 };
 
-export const getUsrs = (tokendec) => {
-  const [email, password] = tokendec.split(':');
+export const getCredentials = (decodedToken) => {
+  const [email, password] = decodedToken.split(':');
   if (!email || !password) {
     return null;
   }

@@ -1,32 +1,32 @@
-// this is the AuthController file that will be used to handle the requests
+#!/usr/bin/node
 
 const { v4 } = require('uuid');
-const { popdec, getUsrs } = require('../utils/helper');
 const dbClient = require('../utils/db');
-const { auths, getToks, passwrd } = require('../utils/helper');
 const redisClient = require('../utils/redis');
+const { getAuthzHeader, getToks, passwrd } = require('../utils/helper');
+const { decodeToken, getCredentials } = require('../utils/helper');
 
 class AuthController {
   static async getConnect(req, res) {
-    const auth = auths(req);
-    if (!auth) {
+    const authzHeader = getAuthzHeader(req);
+    if (!authzHeader) {
       res.status(401).json({ error: 'Unauthorized' });
       res.end();
       return;
     }
-    const token = getToks(auth);
+    const token = getToks(authzHeader);
     if (!token) {
       res.status(401).json({ error: 'Unauthorized' });
       res.end();
       return;
     }
-    const decodedToken = popdec(token);
+    const decodedToken = decodeToken(token);
     if (!decodedToken) {
       res.status(401).json({ error: 'Unauthorized' });
       res.end();
       return;
     }
-    const { email, password } = getUsrs(decodedToken);
+    const { email, password } = getCredentials(decodedToken);
     const user = await dbClient.getUser(email);
     if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
