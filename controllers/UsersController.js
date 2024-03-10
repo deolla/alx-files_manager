@@ -54,7 +54,7 @@ class UsersController {
         }
       });
     } else {
-      console.log('Hupatikani!');
+      console.log('shake it up');
       response.status(401).json({ error: 'Unauthorized' });
     }
   }
