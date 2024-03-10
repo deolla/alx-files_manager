@@ -1,13 +1,11 @@
-import express from 'express';
+// this is the default server configuration.
+const express = require('express');
+const router = require('./routes/index');
 
+const server = express();
+const PORT = process.env.PORT ? process.env.PORT : 5000;
 
-const app = express();
-const port = process.env.PORT || 5000;
+server.use(express.json());
+server.use(router);
 
-app.use(express.json());
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
-
-export default app;
+server.listen(PORT, () => console.log(`The server is running on port: ${PORT}`));

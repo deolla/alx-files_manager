@@ -4,3 +4,6 @@ package-lock.json
 # Files
 *.log
 *.log.*
+
+redis-6.0.10.tar.gz
+redis-6.0.10
