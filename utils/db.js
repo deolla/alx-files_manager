@@ -1,3 +1,5 @@
+// this is the database file.
+
 import { MongoClient } from 'mongodb';
 
 const HOST = process.env.DB_HOST || 'localhost';
