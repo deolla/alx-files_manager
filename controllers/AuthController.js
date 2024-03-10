@@ -1,9 +1,9 @@
 // this is the AuthController file that will be used to handle the requests
 
 const { v4 } = require('uuid');
-const { popdec, getUsrs } = require('../utils/utils');
+const { popdec, getUsrs } = require('../utils/helper');
 const dbClient = require('../utils/db');
-const { auths, getToks, passwrd } = require('../utils/utils');
+const { auths, getToks, passwrd } = require('../utils/helper');
 const redisClient = require('../utils/redis');
 
 class AuthController {

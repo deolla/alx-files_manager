@@ -2,7 +2,7 @@
 
 const { MongoClient } = require('mongodb');
 const mongo = require('mongodb');
-const { passwrd } = require('./utils');
+const { passwrd } = require('./helper');
 
 class DBClient {
   constructor() {
