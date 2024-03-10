@@ -2,7 +2,7 @@ import express from 'express';
 import AppController from '../controllers/AppController';
 import UsersController from '../controllers/UsersController';
 
-function controllers(app) {
+function controls(app) {
   const router = express.Router();
   app.use('/', router);
 
@@ -20,4 +20,4 @@ function controllers(app) {
   });
 }
 
-export default controllers;
+export default controls;
