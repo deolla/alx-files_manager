@@ -2,7 +2,7 @@
 
 const { MongoClient } = require('mongodb');
 const mongo = require('mongodb');
-const { pwdHashed } = require('./utils');
+const { passwrd } = require('./utils');
 
 class DBClient {
   constructor() {
@@ -34,7 +34,7 @@ class DBClient {
   }
 
   async createUser(email, password) {
-    const hashedPwd = pwdHashed(password);
+    const hashedPwd = passwrd(password);
     await this.client.connect();
     const user = await this.client.db(this.database).collection('users').insertOne({ email, password: hashedPwd });
     return user;
