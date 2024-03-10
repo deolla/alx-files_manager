@@ -10,24 +10,38 @@ const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 const fileQueue = new Queue('fileQueue');
 
 class FilesController {
+    static async getUser(user) {
+        const userKey = `user:${user}`;
+        const userExists = await redisClient.exists(userKey);
+        if (userExists) {
+        const userData = await redisClient.hgetall(userKey);
+        return userData;
+        }
+        const userData = await dbClient.users.findOne({ _id: ObjectID(user) });
+        if (!userData) return null;
+        delete userData.password;
+        await redisClient.hmset(userKey, userData);
+        return userData;
+    }
+
     static async postUpload(req, res) {
         const { name, type, parentId, isPublic, data } = req.body;
         if (!name) return res.status(400).send({ error: 'Missing name' });
         if (!type) return res.status(400).send({ error: 'Missing type' });
         if (!data) return res.status(400).send({ error: 'Missing data' });
-    
+
         const user = req.user.id;
         const folder = parentId || 0;
         const isPublicFile = isPublic || false;
         const realType = mime.extension(type);
         const filePath = `${FOLDER_PATH}/${uuidv4()}.${realType}`;
-    
+
         try {
         await fs.writeFile(filePath, data, 'base64');
         } catch (error) {
         return res.status(500).send({ error: 'Cannot write file' });
         }
-    
+
         const fileData = {
         userId: ObjectID(user),
         name,
@@ -36,21 +50,21 @@ class FilesController {
         parentId: ObjectID(folder),
         localPath: filePath,
         };
-    
+
         const file = await dbClient.files.insertOne(fileData);
         const { ops } = file;
         const newFile = ops[0];
         delete newFile.localPath;
-    
+
         if (isPublicFile) {
         redisClient.hset('files', newFile.id, 0);
         }
-    
+
         fileQueue.add({
         userId: user,
         fileId: newFile._id,
         });
-    
+
         return res.status(201).send(newFile);
     }
 
