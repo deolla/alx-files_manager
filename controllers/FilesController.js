@@ -122,6 +122,7 @@ class FilesController {
     }
     return null;
   }
+
   static async getShow(request, response) {
     const user = await FilesController.getUser(request);
     if (!user) {
