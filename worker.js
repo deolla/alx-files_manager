@@ -60,7 +60,7 @@ async function createThumbnail(width, localPath) {
     const idObject = new ObjectId(userId);
     const user = await usersCollection.findOne({ _id: idObject });
     if (user) {
-      console.log(`Well, What'sup?? ${user.email}!`);
+      console.log(`Welcome ${user.email}!`);
     } else {
       done(new Error('User not found'));
     }
